@@ -29,6 +29,7 @@
 #  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  
 
+import re
 import struct
 import usb.core
 import usb.util
@@ -48,6 +49,12 @@ RGB_COLORS = {
 
 __version__ = '0.1'
 __all__ = [ 'Blink1', 'count_devices' ]
+
+class Blink1Error(Exception):
+	pass
+
+class Blink1InvalidColor(Blink1Error):
+	pass
 
 # from https://github.com/todbot/blink1/blob/master/commandline/blink1-lib.c
 # a simple logarithmic -> linear mapping as a sort of gamma correction
@@ -75,7 +82,12 @@ class Blink1(object):
 
 	def set_color(self, color):
 		color = color.lower()
-		rgb_colors = RGB_COLORS[color]
+		if color in RGB_COLORS:
+			rgb_colors = RGB_COLORS[color]
+		elif re.match('^0x[0-9a-f]{6}$', color):
+			rgb_colors = tuple(map(ord, color[2:].decode('hex')))
+		else:
+			raise Blink1InvalidColor()
 		self.set_rgb(*rgb_colors)
 
 	def set_rgb(self, red = 0, green = 0, blue = 0):
