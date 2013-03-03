@@ -7,4 +7,4 @@ The official blink1 repository is maintained by [todbot](https://github.com/todb
 
 Required Packages
 --
-[PyUSB](http://sourceforge.net/projects/pyusb/)
+ * [PyUSB](http://sourceforge.net/projects/pyusb/)
