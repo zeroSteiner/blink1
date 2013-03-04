@@ -132,3 +132,18 @@ class Blink1(object):
 		version_raw = self.dev.ctrl_transfer(bmRequestTypeIn, 1, (3 << 8) | 1, 0, 8)
 		version = ''.join(map(chr, version_raw[3:5]))
 		return version
+
+if __name__ == '__main__':
+	from argparse import ArgumentParser
+	parser = ArgumentParser(description = 'Blink(1) RGB LED', conflict_handler = 'resolve')
+	parser.add_argument('-v', '--version', action = 'version', version = parser.prog + ' Version: ' + __version__)
+	action_parser = parser.add_mutually_exclusive_group(required = True)
+	action_parser.add_argument('-o', '--off', dest = 'turn_off', action = 'store_true', help = 'turn the LED off')
+	action_parser.add_argument('-c', '--color', dest = 'color', action = 'store', help = 'set the LED color')
+	arguments = parser.parse_args()
+	
+	blink1_device = Blink1(clear = False)
+	if arguments.turn_off:
+		blink1_device.off()
+	elif arguments.color:
+		blink1_device.set_color(arguments.color)
