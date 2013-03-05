@@ -46,6 +46,7 @@ RGB_COLORS = {
 	'orange' : (0xff, 0x80, 0x00),
 	'purple' : (0x80, 0x00, 0x80),
 	'cyan'   : (0x00, 0xff, 0xff),
+	'white'  : (0xff, 0xff, 0xff),
 }
 
 __version__ = '0.1'
@@ -81,7 +82,7 @@ class Blink1(object):
 			self.pattern_stop()
 			self.off()
 
-	def set_color(self, color):
+	def set_color(self, color, fade = 0.0):
 		color = color.lower()
 		if color in RGB_COLORS:
 			rgb_colors = RGB_COLORS[color]
@@ -89,11 +90,16 @@ class Blink1(object):
 			rgb_colors = tuple(map(ord, color[2:].decode('hex')))
 		else:
 			raise Blink1InvalidColor()
-		self.set_rgb(*rgb_colors)
+		self.set_rgb(*rgb_colors, fade = fade)
 
-	def set_rgb(self, red = 0, green = 0, blue = 0):
-		red, green, blue = (_degamma(x) for x in (red, green, blue))
-		message = struct.pack('BBBBBBBBB', 1, ord('n'), red, green, blue, 0, 0, 0, 0)
+	def set_rgb(self, red = 0, green = 0, blue = 0, fade = 0.0):
+		fade     = (min(fade, 655.35) * 100)
+		red      = _degamma(red)
+		green    = _degamma(green)
+		blue     = _degamma(blue)
+		message  = struct.pack('BBBBB', 1, ord('c'), red, green, blue)
+		message += struct.pack('>H', fade)
+		message += struct.pack('BB', 0, 0)
 		self.pattern_stop()
 		self.send(message)
 
@@ -131,7 +137,7 @@ class Blink1(object):
 		self.send(message)
 		bmRequestTypeIn = usb.util.build_request_type(usb.util.CTRL_IN, usb.util.CTRL_TYPE_CLASS, usb.util.CTRL_RECIPIENT_INTERFACE)
 		version_raw = self.dev.ctrl_transfer(bmRequestTypeIn, 1, (3 << 8) | 1, 0, 8)
-		version = ''.join(map(chr, version_raw[3:5]))
+		version = chr(version_raw[3]) + '.' + chr(version_raw[4])
 		return version
 
 if __name__ == '__main__':

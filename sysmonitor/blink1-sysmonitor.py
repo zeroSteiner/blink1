@@ -56,7 +56,7 @@ def service():
 			else:
 				color = 'green'
 			try:
-				blink1_device.set_color(color)
+				blink1_device.set_color(color, fade = 0.5)
 			except usb.core.USBError:
 				blink1_device = None
 				break
