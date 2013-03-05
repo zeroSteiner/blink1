@@ -1,4 +1,4 @@
-Blink(1) System Monitor
+blink(1) System Monitor
 ==
 
 This provides a service to monitor system information and set the color on a 

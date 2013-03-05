@@ -82,6 +82,16 @@ class Blink1(object):
 			self.pattern_stop()
 			self.off()
 
+	def eeprom_read(self, addr, length):
+		data = ''
+		for idx in xrange(0, length):
+			message = struct.pack('BBBBBBBBB', 1, ord('e'), addr + idx, 0, 0, 0, 0, 0, 0)
+			self.send(message)
+			bmRequestTypeIn = usb.util.build_request_type(usb.util.CTRL_IN, usb.util.CTRL_TYPE_CLASS, usb.util.CTRL_RECIPIENT_INTERFACE)
+			response = self.dev.ctrl_transfer(bmRequestTypeIn, 1, (3 << 8) | 1, 0, 8)
+			data += chr(response[3])
+		return data
+
 	def set_color(self, color, fade = 0.0):
 		color = color.lower()
 		if color in RGB_COLORS:
@@ -103,8 +113,11 @@ class Blink1(object):
 		self.pattern_stop()
 		self.send(message)
 
-	def off(self):
-		self.set_rgb(red = 0, green = 0, blue = 0)
+	def off(self, fade = 0.0):
+		self.set_rgb(red = 0, green = 0, blue = 0, fade = fade)
+
+	def on(self, fade = 0.0):
+		self.set_rgb(red = 0xff, green = 0xff, blue = 0xff, fade = fade)
 
 	def pattern_clear(self):
 		for idx in xrange(1, 13):
@@ -142,7 +155,7 @@ class Blink1(object):
 
 if __name__ == '__main__':
 	from argparse import ArgumentParser
-	parser = ArgumentParser(description = 'Blink(1) RGB LED', conflict_handler = 'resolve')
+	parser = ArgumentParser(description = 'blink(1) RGB LED', conflict_handler = 'resolve')
 	parser.add_argument('-v', '--version', action = 'version', version = parser.prog + ' Version: ' + __version__)
 	action_parser = parser.add_mutually_exclusive_group(required = True)
 	action_parser.add_argument('-o', '--off', dest = 'turn_off', action = 'store_true', help = 'turn the LED off')
