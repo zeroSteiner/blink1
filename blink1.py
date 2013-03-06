@@ -166,17 +166,25 @@ class Blink1(object):
 		version = chr(version_raw[3]) + '.' + chr(version_raw[4])
 		return version
 
-if __name__ == '__main__':
+def main_cli():
 	from argparse import ArgumentParser
 	parser = ArgumentParser(description = 'blink(1) RGB LED', conflict_handler = 'resolve')
 	parser.add_argument('-v', '--version', action = 'version', version = parser.prog + ' Version: ' + __version__)
+	parser.add_argument('-f', '--fade', dest = 'fade', action = 'store', type = float, default = 0.0, help = 'fade the LED over the specified time in seconds')
 	action_parser = parser.add_mutually_exclusive_group(required = True)
-	action_parser.add_argument('-o', '--off', dest = 'turn_off', action = 'store_true', help = 'turn the LED off')
+	action_parser.add_argument('--off', dest = 'turn_off', action = 'store_true', help = 'turn the LED off')
+	action_parser.add_argument('--on', dest = 'turn_on', action = 'store_true', help = 'turn the LED on')
 	action_parser.add_argument('-c', '--color', dest = 'color', action = 'store', help = 'set the LED color')
 	arguments = parser.parse_args()
-	
+
 	blink1_device = Blink1(clear = False)
+	blink1_device.default_fade = arguments.fade
 	if arguments.turn_off:
 		blink1_device.off()
+	elif arguments.turn_on:
+		blink1_device.on()
 	elif arguments.color:
 		blink1_device.set_color(arguments.color)
+
+if __name__ == '__main__':
+	main_cli()
