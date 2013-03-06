@@ -69,6 +69,7 @@ def count_devices():
 
 class Blink1(object):
 	def __init__(self, clear = True):
+		self.default_fade = None
 		self.dev = usb.core.find(idVendor = BLINK1_VENDOR_ID, idProduct = BLINK1_PRODUCT_ID)
 		try:
 			self.dev.detach_kernel_driver(0)
@@ -87,12 +88,11 @@ class Blink1(object):
 		for idx in xrange(0, length):
 			message = struct.pack('BBBBBBBBB', 1, ord('e'), addr + idx, 0, 0, 0, 0, 0, 0)
 			self.send(message)
-			bmRequestTypeIn = usb.util.build_request_type(usb.util.CTRL_IN, usb.util.CTRL_TYPE_CLASS, usb.util.CTRL_RECIPIENT_INTERFACE)
-			response = self.dev.ctrl_transfer(bmRequestTypeIn, 1, (3 << 8) | 1, 0, 8)
+			response = self.recv()
 			data += chr(response[3])
 		return data
 
-	def set_color(self, color, fade = 0.0):
+	def set_color(self, color, fade = None):
 		color = color.lower()
 		if color in RGB_COLORS:
 			rgb_colors = RGB_COLORS[color]
@@ -102,7 +102,14 @@ class Blink1(object):
 			raise Blink1InvalidColor()
 		self.set_rgb(*rgb_colors, fade = fade)
 
-	def set_rgb(self, red = 0, green = 0, blue = 0, fade = 0.0):
+	def set_rgb(self, red = 0, green = 0, blue = 0, fade = None):
+		if fade == None:
+			if self.default_fade == None:
+				fade = 0.0
+			else:
+				fade = self.default_fade
+		elif fade == False:
+			fade = 0.0
 		fade     = (min(fade, 655.35) * 100)
 		red      = _degamma(red)
 		green    = _degamma(green)
@@ -113,10 +120,10 @@ class Blink1(object):
 		self.pattern_stop()
 		self.send(message)
 
-	def off(self, fade = 0.0):
+	def off(self, fade = None):
 		self.set_rgb(red = 0, green = 0, blue = 0, fade = fade)
 
-	def on(self, fade = 0.0):
+	def on(self, fade = None):
 		self.set_rgb(red = 0xff, green = 0xff, blue = 0xff, fade = fade)
 
 	def pattern_clear(self):
@@ -144,12 +151,18 @@ class Blink1(object):
 		self.dev.ctrl_transfer(reqType, req, 0, 0, data)
 		return
 
-	@property
-	def version(self):
+	def recv(self):
+		bmRequestTypeIn = usb.util.build_request_type(usb.util.CTRL_IN, usb.util.CTRL_TYPE_CLASS, usb.util.CTRL_RECIPIENT_INTERFACE)
+		response = self.dev.ctrl_transfer(bmRequestTypeIn, 1, (3 << 8) | 1, 0, 8)
+		return response
+
+	def get_serial_number(self):
+		return self.eeprom_read(2, 4)
+
+	def get_version(self):
 		message = struct.pack('BBBBBBBBB', 1, ord('v'), 0, 0, 0, 0, 0, 0, 0)
 		self.send(message)
-		bmRequestTypeIn = usb.util.build_request_type(usb.util.CTRL_IN, usb.util.CTRL_TYPE_CLASS, usb.util.CTRL_RECIPIENT_INTERFACE)
-		version_raw = self.dev.ctrl_transfer(bmRequestTypeIn, 1, (3 << 8) | 1, 0, 8)
+		version_raw = self.recv()
 		version = chr(version_raw[3]) + '.' + chr(version_raw[4])
 		return version
 
