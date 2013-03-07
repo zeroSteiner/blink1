@@ -34,6 +34,7 @@ import struct
 import usb.core
 import usb.util
 from time import sleep
+from random import randint
 
 BLINK1_VENDOR_ID  = 0x27b8
 BLINK1_PRODUCT_ID = 0x01ed
@@ -90,6 +91,9 @@ def color_is_valid(color):
 
 def count_devices():
 	return len(usb.core.find(idVendor = BLINK1_VENDOR_ID, idProduct = BLINK1_PRODUCT_ID, find_all = True))
+
+def random_rgb():
+	return (randint(0, 255), randint(0, 255), randint(0, 255))
 
 class Blink1(object):
 	def __init__(self, clear = True):
@@ -194,6 +198,7 @@ def main_cli():
 	action_parser.add_argument('--off', dest = 'turn_off', action = 'store_true', help = 'turn the LED off')
 	action_parser.add_argument('--color-demo', dest = 'color_demo', action = 'store_true', help = 'demonstrate common colors')
 	action_parser.add_argument('-c', '--color', dest = 'color', action = 'store', help = 'set the LED color')
+	action_parser.add_argument('-r', '--random', dest = 'random_color', action = 'store_true', help = 'set the LED to a random color')
 	arguments = parser.parse_args()
 
 	blink1_device = Blink1(clear = False)
@@ -216,6 +221,9 @@ def main_cli():
 		blink1_device.off()
 	elif arguments.color:
 		blink1_device.set_color(arguments.color)
+	elif arguments.random_color:
+		rgb_color = random_rgb()
+		blink1_device.set_rgb(*rgb_color)
 	return 0
 
 if __name__ == '__main__':
