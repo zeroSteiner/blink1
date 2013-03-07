@@ -33,6 +33,7 @@ import re
 import struct
 import usb.core
 import usb.util
+from time import sleep
 
 BLINK1_VENDOR_ID  = 0x27b8
 BLINK1_PRODUCT_ID = 0x01ed
@@ -189,22 +190,30 @@ def main_cli():
 	parser.add_argument('-v', '--version', action = 'version', version = parser.prog + ' Version: ' + __version__)
 	parser.add_argument('-f', '--fade', dest = 'fade', action = 'store', type = float, default = 0.0, help = 'fade the LED over the specified time in seconds')
 	action_parser = parser.add_mutually_exclusive_group(required = True)
-	action_parser.add_argument('--off', dest = 'turn_off', action = 'store_true', help = 'turn the LED off')
 	action_parser.add_argument('--on', dest = 'turn_on', action = 'store_true', help = 'turn the LED on')
+	action_parser.add_argument('--off', dest = 'turn_off', action = 'store_true', help = 'turn the LED off')
+	action_parser.add_argument('--color-demo', dest = 'color_demo', action = 'store_true', help = 'demonstrate common colors')
 	action_parser.add_argument('-c', '--color', dest = 'color', action = 'store', help = 'set the LED color')
 	arguments = parser.parse_args()
 
 	blink1_device = Blink1(clear = False)
+	blink1_device.pattern_stop()
 	blink1_device.default_fade = arguments.fade
 
 	if arguments.color and not color_is_valid(arguments.color):
 		print 'an invalid color has been selected'
 		return 1
 
-	if arguments.turn_off:
-		blink1_device.off()
-	elif arguments.turn_on:
+	if arguments.turn_on:
 		blink1_device.on()
+	elif arguments.turn_off:
+		blink1_device.off()
+	elif arguments.color_demo:
+		for color, rgb_color in RGB_COLORS.items():
+			print 'displaying color: ' + color
+			blink1_device.set_rgb(*rgb_color)
+			sleep(3)
+		blink1_device.off()
 	elif arguments.color:
 		blink1_device.set_color(arguments.color)
 	return 0
