@@ -64,6 +64,29 @@ class Blink1InvalidColor(Blink1Error):
 def _degamma(n):
 	return (((1 << (n / 32)) - 1) + ((1 << (n / 32)) * ((n % 32) + 1) + 15) / 32)
 
+def color_to_rgb(color):
+	color = color.lower()
+	if color in RGB_COLORS:
+		rgb_colors = RGB_COLORS[color]
+	elif re.match('^0x[0-9a-f]{6}$', color):
+		rgb_colors = tuple(map(ord, color[2:].decode('hex')))
+	elif re.match('^#[0-9a-f]{6}$', color):
+		rgb_colors = tuple(map(ord, color[1:].decode('hex')))
+	elif re.match('^(1|2)?[0-9]{1,2},(1|2)?[0-9]{1,2},(1|2)?[0-9]{1,2}$', color):
+		rgb_colors = tuple(map(int, color.split(',')))
+	else:
+		raise Blink1InvalidColor()
+	if filter(lambda x: (x > 255 or x < 0), rgb_colors) or len(rgb_colors) != 3:
+		raise Blink1InvalidColor()
+	return rgb_colors
+
+def color_is_valid(color):
+	try:
+		color_to_rgb(color)
+	except Blink1InvalidColor:
+		return False
+	return True
+
 def count_devices():
 	return len(usb.core.find(idVendor = BLINK1_VENDOR_ID, idProduct = BLINK1_PRODUCT_ID, find_all = True))
 
@@ -93,13 +116,7 @@ class Blink1(object):
 		return data
 
 	def set_color(self, color, fade = None):
-		color = color.lower()
-		if color in RGB_COLORS:
-			rgb_colors = RGB_COLORS[color]
-		elif re.match('^0x[0-9a-f]{6}$', color):
-			rgb_colors = tuple(map(ord, color[2:].decode('hex')))
-		else:
-			raise Blink1InvalidColor()
+		rgb_colors = color_to_rgb(color)
 		self.set_rgb(*rgb_colors, fade = fade)
 
 	def set_rgb(self, red = 0, green = 0, blue = 0, fade = None):
@@ -179,12 +196,18 @@ def main_cli():
 
 	blink1_device = Blink1(clear = False)
 	blink1_device.default_fade = arguments.fade
+
+	if arguments.color and not color_is_valid(arguments.color):
+		print 'an invalid color has been selected'
+		return 1
+
 	if arguments.turn_off:
 		blink1_device.off()
 	elif arguments.turn_on:
 		blink1_device.on()
 	elif arguments.color:
 		blink1_device.set_color(arguments.color)
+	return 0
 
 if __name__ == '__main__':
 	main_cli()
