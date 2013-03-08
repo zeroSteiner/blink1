@@ -10,8 +10,10 @@ A config file needs to be specified on the command line.
  * [psutil](http://code.google.com/p/psutil/)
 
 ## Config File Options
+
 ### Required Options:
  * __pid_file__ path to write the pid file to
+
 ### Optional Options:
  * __setuid__ UID to use for dropping privileges
  * __setgid__ GID to use for dropping privileges
