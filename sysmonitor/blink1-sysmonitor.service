@@ -1,11 +1,11 @@
 [Unit]
-Description=Blink1 System Monitor Utility
+Description=blink(1) System Monitor Utility
 After=syslog.target network.target auditd.service
 
 [Service]
 Type=forking
 PIDFile=/run/blink1-sysmonitor.pid
-ExecStart=/usr/local/bin/blink1-sysmonitor
+ExecStart=/usr/local/bin/blink1-sysmonitor /etc/blink1-sysmonitor.conf
 ExecStop=/bin/kill -INT $MAINPID
 
 [Install]

@@ -34,6 +34,7 @@ import sys
 import usb.core
 import psutil
 import blink1
+from ConfigParser import ConfigParser
 
 def service():
 	blink1_device = None
@@ -61,12 +62,49 @@ def service():
 				blink1_device = None
 				break
 
-if __name__ == '__main__':
+def main_cli():
+	if len(sys.argv) < 2:
+		print 'Usage: blink1-sysmonitor [CONFIG]'
+		return os.EX_USAGE
+
+	try:
+		configfp = open(sys.argv[1], 'r')
+	except IOError:
+		print 'Could not open config file: ' + sys.argv[1]
+		return os.EX_NOPERM
+
+	config = ConfigParser()
+	config.readfp(configfp)
+	try:
+		if config.has_option('core', 'setuid') and config.has_option('core', 'setgid'):
+			setuid = config.getint('core', 'setuid')
+			setgid = config.getint('core', 'setgid')
+		else:
+			setuid = None
+			setgid = None
+		pid_file = config.get('core', 'pid_file')
+	except NoOptionError as err:
+		print 'Cound not validate option: \'' + err.option + '\' from config file'
+		return os.EX_USAGE
+	except ValueError as err:
+		print 'Invalid option ' + err.message + ' from config file'
+		return os.EX_USAGE
+	configfp.close()
+
+	if setuid != None and setgid != None:
+		if os.getuid() != 0:
+			print 'Can not setuid() when not running as root'
+			return os.EX_NOPERM
 	pid = os.fork()
 	if pid:
-		pid_file = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-		pid_file = '/run/' + pid_file + '.pid'
 		pid_file_h = open(pid_file, 'w')
 		pid_file_h.write(str(pid))
-		sys.exit(0)
+		return os.EX_OK
+	if setuid != None and setgid != None:
+		os.setregid(setgid, setgid)
+		os.setreuid(setuid, setuid)
 	service()
+	return os.EX_OK
+
+if __name__ == '__main__':
+	sys.exit(main_cli())
