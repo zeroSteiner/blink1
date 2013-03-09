@@ -12,6 +12,8 @@ A config file needs to be specified on the command line.
 ## Config File Options
 
 ### Required Options:
+ * __mode__ the setting to monitor (CPU/MEM)
+ * __interval__ the time in seconds before refreshing
  * __pid_file__ path to write the pid file to
 
 ### Optional Options:

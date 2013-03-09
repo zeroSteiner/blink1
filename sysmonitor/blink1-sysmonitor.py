@@ -34,9 +34,17 @@ import sys
 import usb.core
 import psutil
 import blink1
+from time import sleep
 from ConfigParser import ConfigParser
 
-def service():
+COLOR_SETTINGS = { # (percent, color)
+	'high'     : (80, 'red'),
+	'mid-high' : (60, 'orange'),
+	'mid-low'  : (40, 'yellow'),
+	'low'      : ( 0, 'green'),
+}
+
+def service(mode, interval):
 	blink1_device = None
 	while True:
 		while blink1_device == None:
@@ -46,16 +54,21 @@ def service():
 				blink1_device = None
 		blink1_device.pattern_stop()
 		blink1_device.off()
+
 		while True:
-			cpu_percentage = psutil.cpu_percent(interval = 2)
-			if cpu_percentage >= 80:
-				color = 'red'
-			elif cpu_percentage >= 60:
-				color = 'orange'
-			elif cpu_percentage >= 40:
-				color = 'yellow'
+			if mode == 'cpu':
+				usage_percentage = psutil.cpu_percent(interval = interval)
+			elif mode == 'mem':
+				sleep(interval)
+				usage_percentage = psutil.virtual_memory().percent
+			if usage_percentage >= COLOR_SETTINGS['high'][0]:
+				color = COLOR_SETTINGS['high'][1]
+			elif usage_percentage >= COLOR_SETTINGS['mid-high'][0]:
+				color = COLOR_SETTINGS['mid-high'][1]
+			elif usage_percentage >= COLOR_SETTINGS['mid-low'][0]:
+				color = COLOR_SETTINGS['mid-low'][1]
 			else:
-				color = 'green'
+				color = COLOR_SETTINGS['low'][1]
 			try:
 				blink1_device.set_color(color, fade = 0.5)
 			except usb.core.USBError:
@@ -83,6 +96,8 @@ def main_cli():
 			setuid = None
 			setgid = None
 		pid_file = config.get('core', 'pid_file')
+		mode = config.get('core', 'mode')
+		interval = config.getint('core', 'interval')
 	except NoOptionError as err:
 		print 'Cound not validate option: \'' + err.option + '\' from config file'
 		return os.EX_USAGE
@@ -90,6 +105,11 @@ def main_cli():
 		print 'Invalid option ' + err.message + ' from config file'
 		return os.EX_USAGE
 	configfp.close()
+
+	mode = mode.lower()
+	if not mode in ['cpu', 'memory']:
+		print 'Setting mode must be cpu or memory'
+		return os.EX_USAGE
 
 	if setuid != None and setgid != None:
 		if os.getuid() != 0:
@@ -103,7 +123,7 @@ def main_cli():
 	if setuid != None and setgid != None:
 		os.setregid(setgid, setgid)
 		os.setreuid(setuid, setuid)
-	service()
+	service(mode, interval)
 	return os.EX_OK
 
 if __name__ == '__main__':
