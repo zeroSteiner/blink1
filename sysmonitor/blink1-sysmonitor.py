@@ -58,7 +58,7 @@ def service(mode, interval):
 		while True:
 			if mode == 'cpu':
 				usage_percentage = psutil.cpu_percent(interval = interval)
-			elif mode == 'mem':
+			elif mode == 'memory':
 				sleep(interval)
 				usage_percentage = psutil.virtual_memory().percent
 			if usage_percentage >= COLOR_SETTINGS['high'][0]:
