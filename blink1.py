@@ -60,6 +60,9 @@ class Blink1Error(Exception):
 class Blink1InvalidColor(Blink1Error):
 	pass
 
+class Blink1NoDevice(Blink1Error):
+	pass
+
 # from https://github.com/todbot/blink1/blob/master/commandline/blink1-lib.c
 # a simple logarithmic -> linear mapping as a sort of gamma correction
 # maps from 0-255 to 0-255
@@ -96,9 +99,21 @@ def random_rgb():
 	return (randint(0, 255), randint(0, 255), randint(0, 255))
 
 class Blink1(object):
-	def __init__(self, clear = True):
+	def __init__(self, clear = True, dev = None, serial = None):
 		self.default_fade = None
-		self.dev = usb.core.find(idVendor = BLINK1_VENDOR_ID, idProduct = BLINK1_PRODUCT_ID)
+		self.dev = dev
+		if self.dev == None:
+			if serial == None:
+				self.dev = usb.core.find(idVendor = BLINK1_VENDOR_ID, idProduct = BLINK1_PRODUCT_ID)
+			else:
+				serial = serial.upper()
+				devices = usb.core.find(idVendor = BLINK1_VENDOR_ID, idProduct = BLINK1_PRODUCT_ID, find_all = True)
+				for dev in devices:
+					if usb.util.get_string(dev, 256, 3) == serial:
+						self.dev = dev
+						break
+		if self.dev == None:
+			raise Blink1NoDevice()
 		try:
 			self.dev.detach_kernel_driver(0)
 		except usb.core.USBError:
@@ -179,7 +194,9 @@ class Blink1(object):
 		return response
 
 	def get_serial_number(self):
-		return self.eeprom_read(2, 4)
+		serial_raw = self.eeprom_read(2, 4)
+		serial = serial_raw.encode('hex').upper()
+		return serial
 
 	def get_version(self):
 		message = struct.pack('BBBBBBBBB', 1, ord('v'), 0, 0, 0, 0, 0, 0, 0)
