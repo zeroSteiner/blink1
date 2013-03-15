@@ -35,7 +35,8 @@ import usb.core
 import psutil
 import blink1
 from time import sleep
-from ConfigParser import ConfigParser
+
+__version__ = '0.2'
 
 COLOR_SETTINGS = { # (percent, color)
 	'high'     : (80, 'red'),
@@ -76,53 +77,17 @@ def service(mode, interval):
 				break
 
 def main_cli():
-	if len(sys.argv) < 2:
-		print 'Usage: blink1-sysmonitor [CONFIG]'
-		return os.EX_USAGE
+	from argparse import ArgumentParser
+	parser = ArgumentParser(description = 'blink(1) System Monitor', conflict_handler = 'resolve')
+	parser.add_argument('-v', '--version', action = 'version', version = parser.prog + ' Version: ' + __version__)
+	parser.add_argument('-i', '--interval', dest = 'interval', action = 'store', type = float, default = 2.0, help = 'refresh interval')
+	parser.add_argument('-m', '--mode', dest = 'mode', action = 'store', choices = ['cpu', 'mem'], default = 'cpu', help = 'monitor mode') 
+	arguments = parser.parse_args()
 
-	try:
-		configfp = open(sys.argv[1], 'r')
-	except IOError:
-		print 'Could not open config file: ' + sys.argv[1]
-		return os.EX_NOPERM
+	mode = arguments.mode
+	interval = arguments.interval
+	del parser, arguments
 
-	config = ConfigParser()
-	config.readfp(configfp)
-	try:
-		if config.has_option('core', 'setuid') and config.has_option('core', 'setgid'):
-			setuid = config.getint('core', 'setuid')
-			setgid = config.getint('core', 'setgid')
-		else:
-			setuid = None
-			setgid = None
-		pid_file = config.get('core', 'pid_file')
-		mode = config.get('core', 'mode')
-		interval = config.getint('core', 'interval')
-	except NoOptionError as err:
-		print 'Cound not validate option: \'' + err.option + '\' from config file'
-		return os.EX_USAGE
-	except ValueError as err:
-		print 'Invalid option ' + err.message + ' from config file'
-		return os.EX_USAGE
-	configfp.close()
-
-	mode = mode.lower()
-	if not mode in ['cpu', 'memory']:
-		print 'Setting mode must be cpu or memory'
-		return os.EX_USAGE
-
-	if setuid != None and setgid != None:
-		if os.getuid() != 0:
-			print 'Can not setuid() when not running as root'
-			return os.EX_NOPERM
-	pid = os.fork()
-	if pid:
-		pid_file_h = open(pid_file, 'w')
-		pid_file_h.write(str(pid))
-		return os.EX_OK
-	if setuid != None and setgid != None:
-		os.setregid(setgid, setgid)
-		os.setreuid(setuid, setuid)
 	service(mode, interval)
 	return os.EX_OK
 

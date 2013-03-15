@@ -1,11 +1,17 @@
+# The blink(1) sysmonitor service unit file
+#
+# Quick HowTo:
+# 1. Copy this file to /etc/systemd/system/blink1-sysmonitor.service
+# 2. Edit <USER> and run parameters appropriately in the ExecStart option
+# 3. Run "systemctl daemon-reload"
+
 [Unit]
 Description=blink(1) System Monitor Utility
-After=syslog.target network.target auditd.service
+After=multi-user.target
 
 [Service]
-Type=forking
-PIDFile=/run/blink1-sysmonitor.pid
-ExecStart=/usr/local/bin/blink1-sysmonitor /etc/blink1-sysmonitor.conf
+Type=simple
+ExecStart=/sbin/runuser -l <USER> -c "/usr/local/bin/blink1-sysmonitor"
 ExecStop=/bin/kill -INT $MAINPID
 
 [Install]
