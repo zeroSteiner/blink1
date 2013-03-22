@@ -11,7 +11,7 @@ After=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=/sbin/runuser -l <USER> -c "/usr/local/bin/blink1-sysmonitor"
+ExecStart=/sbin/runuser -s /bin/sh -l <USER> -c "/usr/local/bin/blink1-sysmonitor"
 ExecStop=/bin/kill -INT $MAINPID
 
 [Install]
